@@ -13,21 +13,23 @@ from modules.script_callbacks import CFGDenoiserParams, on_cfg_denoiser,CFGDenoi
 
 debug = False
 
+OPT_ACT = "cdtuner_active"
+OPT_HIDE = "cdtuner_hide"
+
 CD_T = "customscript/cdtuner.py/txt2img/Active/value"
 CD_I = "customscript/cdtuner.py/img2img/Active/value"
 CONFIG = shared.cmd_opts.ui_config_file
 
-if os.path.exists(CONFIG):
-    with open(CONFIG, 'r', encoding="utf-8") as json_file:
-        ui_config = json.load(json_file)
-else:
-    print("ui config file not found, using default values")
-    ui_config = {}
+with open(CONFIG, 'r', encoding="utf-8") as json_file:
+    ui_config = json.load(json_file)
 
 startup_t = ui_config[CD_T] if CD_T in ui_config else None
 startup_i = ui_config[CD_I] if CD_I in ui_config else None
 active_t = "Active" if startup_t else "Not Active"
 active_i = "Active" if startup_i else "Not Active"
+
+opt_active = getattr(shared.opts,OPT_ACT, True)
+opt_hideui = getattr(shared.opts,OPT_HIDE, False)
 
 class ToolButton(gr.Button, gr.components.FormComponent):
     """Small button with single emoji as text, fits inside gradio forms"""
@@ -72,10 +74,10 @@ class Script(modules.scripts.Script):
     def ui(self, is_img2img):      
         resetsymbol = '\U0001F5D1\U0000FE0F'
 
-        with gr.Accordion(f"CD Tuner : {active_i if is_img2img else active_t}",open = False) as acc:
+        with gr.Accordion(f"CD Tuner : {active_i if is_img2img else active_t}", open=False, visible=not opt_hideui) as acc:
             with gr.Row():
-                active = gr.Checkbox(value=True, label="Active",interactive=True,elem_id="cdt-active")
-                toggle = gr.Button(value=f"Toggle startup with Active(Now:{startup_i if is_img2img else startup_t})")
+                active = gr.Checkbox(value=False, label="Active", interactive=True)
+                toggle = gr.Button(elem_id="switch_default", value=f"Toggle startup with Active(Now:{startup_i if is_img2img else startup_t})", variant="primary")
             with gr.Tab("Color/Detail"):
                 with gr.Row():
                     with gr.Column():
@@ -194,26 +196,36 @@ class Script(modules.scripts.Script):
 
             def f_toggle(is_img2img):
                 key = CD_I if is_img2img else CD_T
-
-                with open(CONFIG, 'r') as json_file:
+        
+                with open(CONFIG, 'r', encoding="utf-8") as json_file:
                     data = json.load(json_file)
                 data[key] = not data[key]
+        
+                with open(CONFIG, 'w', encoding="utf-8") as json_file:
+                    json.dump(data, json_file, indent=4)
+        
+                return gr.update(value=f"Toggle startup Active(Now:{data[key]})")
+        
+            toggle.click(fn=f_toggle, inputs=[gr.Checkbox(value=is_img2img, visible=False)], outputs=[toggle])
+            active.change(fn=lambda x: gr.update(label=f"CD Tuner : {'Active' if x else 'Not Active'}"), inputs=active, outputs=[acc])
 
-                with open(CONFIG, 'w') as json_file:
-                    json.dump(data, json_file, indent=4) 
+        self.infotext_fields = [(active, "CD Tuner Active"),(allsets, "CDT"),(allsets_c, "CDTC"),]
+        self.paste_field_names.extend(["CD Tuner Active", "CDT", "CDTC"])
+    
+        return [active] + params + paramsc
 
-                return gr.update(value = f"Toggle startup Active(Now:{data[key]})")
-
-            toggle.click(fn=f_toggle,inputs=[gr.Checkbox(value = is_img2img, visible = False)],outputs=[toggle])
-            active.change(fn=lambda x:gr.update(label = f"CD Tuner : {'Active' if x else 'Not Active'}"),inputs=active, outputs=[acc])
-
-
-        self.infotext_fields = ([(allsets,"CDT"),(allsets_c,"CDTC")])
-        self.paste_field_names.append("CDT")
-        self.paste_field_names.append("CDTC")
-
-        return params + paramsc
-
+    def ext_on_ui_settings():
+        cdtuner_options = [
+            (OPT_HIDE, False, "Hide in Txt2Img/Img2Img tab(Reload UI required)"),
+            (OPT_ACT, True, "Active(Effective when Hide is Checked)"),
+        ]
+        section = ('CDTuner', "CD Tuner")
+    
+        for cur_setting_name, *option_info in cdtuner_options:
+            shared.opts.add_option(cur_setting_name, shared.OptionInfo(*option_info, section=section))
+    
+    on_ui_settings(ext_on_ui_settings)
+    
     def process_batch(self, p, active, d1,d2,cont1,cont2,bri,col1,col2,col3,hd1,hd2,scaling,stop,stoph,sat,ratios,cmode,colors,fst,att,**kwargs):
         if (self.done[0] or self.done[1]) and self.storedweights and self.storedname == shared.opts.sd_model_checkpoint:
             restoremodel(self)
@@ -225,8 +237,8 @@ class Script(modules.scripts.Script):
 
         self.__init__()
 
-        if not active:
-            return
+        if getattr(shared.opts,OPT_HIDE, False) and not getattr(shared.opts,OPT_ACT, False): return
+        elif not active: return
 
         psets, psets_c = fromprompts(p.all_prompts[0:1])
 
@@ -244,7 +256,9 @@ class Script(modules.scripts.Script):
 
         if debug: print("\n",allsets)
         if debug: print("\n",allsets_c)
-
+            
+        self.active = active
+        
         self.isxl = hasattr(shared.sd_model,"conditioner")
 
         self.isrefiner = getattr(p, "refiner_switch_at") is not None
