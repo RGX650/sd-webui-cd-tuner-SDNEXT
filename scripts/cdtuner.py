@@ -9,7 +9,7 @@ from torch.nn import Parameter
 import modules.ui
 import modules
 from modules import devices, shared, extra_networks
-from modules.script_callbacks import CFGDenoiserParams, on_cfg_denoiser,CFGDenoisedParams, on_cfg_denoised
+from modules.script_callbacks import CFGDenoiserParams, on_cfg_denoiser,CFGDenoisedParams, on_cfg_denoised, on_ui_settings
 
 debug = False
 
