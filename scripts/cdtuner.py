@@ -216,12 +216,12 @@ class Script(modules.scripts.Script):
             toggle.click(fn=f_toggle, inputs=[gr.Checkbox(value=is_img2img, visible=False)], outputs=[toggle])
             active.change(fn=lambda x: gr.update(label=update_label(x)), inputs=active, outputs=[acc])
 
-        self.infotext_fields = [(active, "CD Tuner Active"),(allsets,"CDT"),(allsets_c,"CDTC")]
+        self.infotext_fields = [(allsets,"CDT"),(allsets_c,"CDTC")]
 
         for _,name in self.infotext_fields:
             self.paste_field_names.append(name)
 
-        return [active] + params + paramsc
+        return params + paramsc
 
     def ext_on_ui_settings():
         cdtuner_options = [
