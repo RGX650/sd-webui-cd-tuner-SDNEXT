@@ -20,8 +20,12 @@ CD_T = "customscript/cdtuner.py/txt2img/Active/value"
 CD_I = "customscript/cdtuner.py/img2img/Active/value"
 CONFIG = shared.cmd_opts.ui_config_file
 
-with open(CONFIG, 'r', encoding="utf-8") as json_file:
-    ui_config = json.load(json_file)
+if os.path.exists(CONFIG):
+    with open(CONFIG, 'r', encoding="utf-8") as json_file:
+        ui_config = json.load(json_file)
+else:
+    print("ui config file not found, using default values")
+    ui_config = {}
 
 startup_t = ui_config[CD_T] if CD_T in ui_config else None
 startup_i = ui_config[CD_I] if CD_I in ui_config else None
