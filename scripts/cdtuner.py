@@ -216,18 +216,12 @@ class Script(modules.scripts.Script):
             toggle.click(fn=f_toggle, inputs=[gr.Checkbox(value=is_img2img, visible=False)], outputs=[toggle])
             active.change(fn=lambda x: gr.update(label=update_label(x)), inputs=active, outputs=[acc])
 
-        self.infotext_fields = [(active, "CD Tuner Active"),]
+        self.infotext_fields = [(active, "CD Tuner Active"),(allsets,"CDT"),(allsets_c,"CDTC")]
 
         for _,name in self.infotext_fields:
             self.paste_field_names.append(name)
 
-        return [active]
-        
-        self.infotext_fields = ([(allsets,"CDT"),(allsets_c,"CDTC")])
-        self.paste_field_names.append("CDT")
-        self.paste_field_names.append("CDTC")
-
-        return params + paramsc
+        return [active] + params + paramsc
 
     def ext_on_ui_settings():
         cdtuner_options = [
@@ -271,8 +265,6 @@ class Script(modules.scripts.Script):
 
         if debug: print("\n",allsets)
         if debug: print("\n",allsets_c)
-            
-        self.active = active
         
         self.isxl = hasattr(shared.sd_model,"conditioner")
 
