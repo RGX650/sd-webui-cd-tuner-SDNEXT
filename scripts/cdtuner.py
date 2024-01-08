@@ -204,15 +204,26 @@ class Script(modules.scripts.Script):
                 with open(CONFIG, 'w', encoding="utf-8") as json_file:
                     json.dump(data, json_file, indent=4)
         
-                return gr.update(value=f"Toggle startup Active(Now:{data[key]})")
-        
+                return f"Toggle startup Active(Now:{data[key]})"
+            
+            def update_label(x):
+                return f"CD Tuner : {'Active' if x else 'Not Active'}"
+            
             toggle.click(fn=f_toggle, inputs=[gr.Checkbox(value=is_img2img, visible=False)], outputs=[toggle])
-            active.change(fn=lambda x: gr.update(label=f"CD Tuner : {'Active' if x else 'Not Active'}"), inputs=active, outputs=[acc])
+            active.change(fn=lambda x: gr.update(label=update_label(x)), inputs=active, outputs=[acc])
 
-        self.infotext_fields = [(active, "CD Tuner Active"),(allsets, "CDT"),(allsets_c, "CDTC"),]
-        self.paste_field_names.extend(["CD Tuner Active", "CDT", "CDTC"])
-    
-        return [active] + params + paramsc
+        self.infotext_fields = [(active, "CD Tuner Active"),]
+
+        for _,name in self.infotext_fields:
+            self.paste_field_names.append(name)
+
+        return [active]
+        
+        self.infotext_fields = ([(allsets,"CDT"),(allsets_c,"CDTC")])
+        self.paste_field_names.append("CDT")
+        self.paste_field_names.append("CDTC")
+
+        return params + paramsc
 
     def ext_on_ui_settings():
         cdtuner_options = [
